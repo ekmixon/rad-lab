@@ -401,7 +401,7 @@ def getbillingacc():
     x = input("\nHow would you like to fetch the Billing Account ?\n[1] Enter Manually\n[2] Select from the List\n" + Fore.YELLOW + Style.BRIGHT + "Choose a number for your choice"+ Style.RESET_ALL + ': ').strip()
 
     if(x == '1'):
-        billing_acc = input(Fore.YELLOW + Style.BRIGHT + "Enter the Billing Account ( Example format - ABCDEF-GHIJKL-LMNOPQ )" + Style.RESET_ALL + ': ').strip()
+        billing_acc = input(Fore.YELLOW + Style.BRIGHT + "Enter the Billing Account ( Example format - ABCDEF-GHIJKL-MNOPQR )" + Style.RESET_ALL + ': ').strip()
         return billing_acc
     
     elif(x == '2'):
