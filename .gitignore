@@ -13,3 +13,5 @@ env/
 terraform.tfvars
 *.lock.hcl
 elk/
+test/**
+**/deployments

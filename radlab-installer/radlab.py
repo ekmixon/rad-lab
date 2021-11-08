@@ -33,16 +33,25 @@ from colorama import Fore, Back, Style
 from python_terraform import Terraform
 from oauth2client.client import GoogleCredentials
 
+STATE_CREATE_DEPLOYMENT = "1"
+STATE_UPDATE_DEPLOYMENT = "2"
+STATE_DELETE_DEPLOYMENT = "3"
+STATE_LIST_DEPLOYMENT = "4"
+
+OPTION_MODULE_DATA_SCIENCE = "1"
+OPTION_MODULE_APP_MOD_ELASTIC_SEARCH = "2"
+OPTION_QUIT = "3"
+
 def main():
     
-    orgid          = ""
-    folderid       = ""
-    billing_acc    = ""
-    domain         = ""
-    module          = ""
-    state          = ""
-    notebook_count = ""
-    trusted_users  = []
+    orgid           = ""
+    folderid        = ""
+    billing_acc     = ""
+    domain          = ""
+    selected_module = ""
+    state           = ""
+    notebook_count  = ""
+    trusted_users   = []
 
     setup_path = os.getcwd()
 
@@ -52,9 +61,9 @@ def main():
         print("Login with Cloud Admin account...")
         os.system("gcloud auth application-default login")
 
-    module = input("\nList of available RADLab modules:\n[1] Data Science\n[2] (APP MOD) Elastic Search\n[3] Exit\n"+ Fore.YELLOW + Style.BRIGHT + "Choose a number for the RADLab Module"+ Style.RESET_ALL + ': ')
-    
-    if(module.strip() == "1"):
+    selected_module = input("\nList of available RADLab modules:\n[1] Data Science\n[2] (APP MOD) Elastic Search\n[3] Exit\n"+ Fore.YELLOW + Style.BRIGHT + "Choose a number for the RADLab Module"+ Style.RESET_ALL + ': ').strip()
+
+    if(selected_module == OPTION_MODULE_DATA_SCIENCE):
 
         print("\nRADLab Module (selected) : "+ Fore.GREEN + Style.BRIGHT +"Data Science"+ Style.RESET_ALL)
         
@@ -68,7 +77,7 @@ def main():
         print("\nGCS bucket for Terraform config & state (Selected) : " + Fore.GREEN + Style.BRIGHT + tfbucket + Style.RESET_ALL )
 
         # Setting Org ID, Billing Account, Folder ID, Domain
-        if(state == "1"):  
+        if(state == STATE_CREATE_DEPLOYMENT):
 
             # Getting Base Inputs
             orgid, billing_acc, folderid, domain, randomid = basic_input()
@@ -81,7 +90,7 @@ def main():
             delifexist(env_path)
 
             # Copy module directory
-            shutil.copytree(os.path.dirname(os.path.dirname(os.getcwd())) + '/modules/data_science', env_path)
+            shutil.copytree(os.path.dirname(os.getcwd()) + '/modules/data_science', env_path)
             
             # Set Terraform states remote backend as GCS
             settfstategcs(env_path,prefix,tfbucket)
@@ -89,7 +98,7 @@ def main():
             # Create file with billing/org/folder details
             create_env(env_path, orgid, billing_acc, folderid)
 
-        elif(state == "2" or state == "3"):
+        elif(state == STATE_UPDATE_DEPLOYMENT or state == STATE_DELETE_DEPLOYMENT):
             
             # Get Deployment ID
             randomid = input(Fore.YELLOW + Style.BRIGHT + "\nEnter RADLab Module Deployment ID (example 'l8b3' is the id for project with id - radlab-ds-analytics-l8b3)" + Style.RESET_ALL + ': ')
@@ -117,10 +126,10 @@ def main():
             # Set Terraform states remote backend as GCS
             settfstategcs(env_path,prefix,tfbucket)
 
-            if(state == "3"):
+            if(state == STATE_DELETE_DEPLOYMENT):
                 print("DELETING DEPLOYMENT...")
         
-        elif(state == "4"):
+        elif(state == STATE_LIST_DEPLOYMENT):
             list_radlab_deployments(tfbucket, module_name)
             sys.exit()
 
@@ -132,7 +141,7 @@ def main():
         ###########################
 
         # No. of AI Notebooks and assigning trusted users
-        if(state == "1" or state == "2"):
+        if(state == STATE_CREATE_DEPLOYMENT or state == STATE_UPDATE_DEPLOYMENT):
             # Requesting Number of AI Notebooks
             notebook_count = input(Fore.YELLOW + Style.BRIGHT + "\nNumber of AI Notebooks required [Default is 1 & Maximum is 10]"+ Style.RESET_ALL + ': ')
             if(len(notebook_count.strip()) == 0):
@@ -156,8 +165,7 @@ def main():
                         new_name = new_name.split("@")[0]
                     trusted_users.append("user:" + new_name + "@" + domain)
             # print(trusted_users)
-
-    elif(module.strip() == "2"):
+    elif(selected_module ==  OPTION_MODULE_APP_MOD_ELASTIC_SEARCH):
 
         print("\nRADLab Module (selected) : "+ Fore.GREEN + Style.BRIGHT +"(APP MOD) Elastic Search"+ Style.RESET_ALL)
 
@@ -171,7 +179,7 @@ def main():
         print("\nGCS bucket for Terrafrom config & state (Selected) : " + Fore.GREEN + Style.BRIGHT + tfbucket + Style.RESET_ALL )
 
         # Setting Org ID, Billing Account, Folder ID, Domain
-        if(state == "1"):
+        if(state == STATE_CREATE_DEPLOYMENT):
             
             # Getting Base Inputs
             orgid, billing_acc, folderid, domain, randomid = basic_input()
@@ -184,15 +192,15 @@ def main():
             delifexist(env_path)
 
             # Copy module directory
-            shutil.copytree(os.path.dirname(os.path.dirname(os.getcwd())) + '/modules/app_mod_elastic', env_path)
-            
+            shutil.copytree(os.path.dirname(os.getcwd()) + '/modules/app_mod_elastic', env_path)
+
             # Set Terraform states remote backend as GCS
             settfstategcs(env_path,prefix,tfbucket)
 
             # Create file with billing/org/folder details
             create_env(env_path, orgid, billing_acc, folderid)
 
-        elif(state == "2" or state == "3"):
+        elif(state == STATE_UPDATE_DEPLOYMENT or state == STATE_DELETE_DEPLOYMENT):
             
             # Get Deployment ID
             randomid = input(Fore.YELLOW + Style.BRIGHT + "\nEnter RADLab Module Deployment ID (example 'l8b3' is the id for project with id - radlab-ds-analytics-l8b3)" + Style.RESET_ALL + ': ')
@@ -220,10 +228,10 @@ def main():
             # Set Terraform states remote backend as GCS
             settfstategcs(env_path,prefix,tfbucket)
 
-            if(state == "3"):
+            if(state == STATE_DELETE_DEPLOYMENT):
                 print("DELETING DEPLOYMENT...")
 
-        elif(state == "4"):
+        elif(state == STATE_LIST_DEPLOYMENT):
             list_radlab_deployments(tfbucket, module_name)
             sys.exit()
 
@@ -235,24 +243,24 @@ def main():
         # Module Specific Options #
         ###########################
         
-    elif(module.strip() == "3"):
+    elif(selected_module == OPTION_QUIT):
         sys.exit(Fore.GREEN + "\nExiting Installer")
 
     else:
         sys.exit(Fore.RED + "\nInvalid module")
 
-    env(state, orgid, billing_acc, folderid, domain, env_path, notebook_count, trusted_users, randomid, tfbucket)
+    env(state, orgid, billing_acc, folderid, domain, env_path, notebook_count, trusted_users, randomid, tfbucket, selected_module)
     print("\nGCS Bucket storing Terrafrom Configs: "+ tfbucket +"\n")
     print("\nTERRAFORM DEPLOYMENT COMPLETED!!!\n")
 	
 
-def env(state, orgid, billing_acc, folderid, domain, env_path, notebook_count, trusted_users, randomid, tfbucket):
+def env(state, orgid, billing_acc, folderid, domain, env_path, notebook_count, trusted_users, randomid, tfbucket, selected_module):
     tr = Terraform(working_dir=env_path)
     return_code, stdout, stderr = tr.init_cmd(capture_output=False)
     
-    if(state == "1" or state == "2"):
+    if(state == STATE_CREATE_DEPLOYMENT or state == STATE_UPDATE_DEPLOYMENT):
         return_code, stdout, stderr = tr.apply_cmd(capture_output=False,auto_approve=True,var={'organization_id':orgid, 'billing_account_id':billing_acc, 'folder_id':folderid, 'domain':domain, 'file_path':env_path, 'notebook_count':notebook_count, 'trusted_users': trusted_users, 'random_id':randomid})
-    elif(state == "3"):
+    elif(state == STATE_DELETE_DEPLOYMENT):
         return_code, stdout, stderr = tr.destroy_cmd(capture_output=False,auto_approve=True,var={'organization_id':orgid, 'billing_account_id':billing_acc, 'folder_id':folderid, 'file_path':env_path,'random_id':randomid})
 
     # return_code - 0 Success & 1 Error
@@ -260,24 +268,28 @@ def env(state, orgid, billing_acc, folderid, domain, env_path, notebook_count, t
         print(stderr)
         sys.exit(Fore.RED + Style.BRIGHT + "\nError Occured - Deployment failed for ID: "+ randomid+"\n"+ "Retry using above Deployment ID" +Style.RESET_ALL )
     else:
-        if(state == '1' or state == '2'):
-            os.system('gsutil -q -m cp -r ' + env_path + '/*.tf gs://'+ tfbucket +'/radlab/'+ env_path.split('/')[len(env_path.split('/'))-1] +'/deployments')
-            os.system('gsutil -q -m cp -r ' + env_path + '/templates gs://'+ tfbucket +'/radlab/'+ env_path.split('/')[len(env_path.split('/'))-1] +'/deployments/templates')
-            os.system('gsutil -q -m cp -r ' + env_path + '/elk gs://'+ tfbucket +'/radlab/'+ env_path.split('/')[len(env_path.split('/'))-1] +'/deployments/elk')
-            os.system('gsutil -q -m cp -r ' + env_path + '/*.json gs://'+ tfbucket +'/radlab/'+ env_path.split('/')[len(env_path.split('/'))-1] +'/deployments')
+        target_path = 'gs://'+ tfbucket +'/radlab/'+ env_path.split('/')[len(env_path.split('/'))-1] +'/deployments'
+        if(state == STATE_CREATE_DEPLOYMENT or state == STATE_UPDATE_DEPLOYMENT):
+            os.system('gsutil -q -m cp -r ' + env_path + '/*.tf ' + target_path)
+            os.system('gsutil -q -m cp -r ' + env_path + '/*.json ' + target_path)
 
-        elif(state == '3'):
-            # print(env_path)
-            # print(env_path.split('/')[len(env_path.split('/'))-1])
+            if(selected_module == OPTION_MODULE_APP_MOD_ELASTIC_SEARCH): # Module specific folders
+                os.system('gsutil -q -m cp -r ' + env_path + '/elk ' + target_path)
+                os.system('gsutil -q -m cp -r -P ' + env_path + '/scripts ' + target_path)
+                os.system('gsutil -q -m cp -r ' + env_path + '/templates ' + target_path)
+
+        elif(state == STATE_DELETE_DEPLOYMENT):
             deltfgcs(tfbucket, 'radlab/'+ env_path.split('/')[len(env_path.split('/'))-1])
 
     # Deleting Local deployment config
     shutil.rmtree(env_path)
 
 def select_state():
-    state = input("\nAction to perform for RADLab Deployment ?\n[1] Create New\n[2] Update\n[3] Delete\n[4] List\n" + Fore.YELLOW + Style.BRIGHT + "Choose a number for the RADLab Module Deployment Action"+ Style.RESET_ALL + ': ')
-    state = state.strip()
-    return state
+    state = input("\nAction to perform for RADLab Deployment ?\n[1] Create New\n[2] Update\n[3] Delete\n[4] List\n" + Fore.YELLOW + Style.BRIGHT + "Choose a number for the RADLab Module Deployment Action"+ Style.RESET_ALL + ': ').strip()
+    if(state == '1' or state == '2' or state == '3' or state == '4'):
+        return state
+    else: 
+        sys.exit(Fore.RED + "\nError Occured - INVALID choice.\n")
 
 def basic_input():
 
@@ -295,6 +307,10 @@ def basic_input():
     billing_acc = getbillingacc()
     print("\nBilling Account (Selected) : " + Fore.GREEN + Style.BRIGHT + billing_acc + Style.RESET_ALL )  
     
+    # Billing Account Validation
+    if (billing_acc.count('-') != 3) :
+        sys.exit(Fore.RED + "\nError Occured - INVALID Billing Account\n")
+
     # Selecting Folder ID
     folderid = input(Fore.YELLOW + Style.BRIGHT + "\nFolder ID [Optional]"+ Style.RESET_ALL + ': ')
 
@@ -352,7 +368,7 @@ def setlocaldeployment(tfbucket,prefix, env_path):
         os.mkdir(env_path)
 
         # Copy Terraform deployment configs from GCS to Local
-        if(os.system('gsutil -q -m cp -r gs://'+ tfbucket +'/radlab/'+ prefix +'/deployments/* ' + env_path) == 0):
+        if(os.system('gsutil -q -m cp -r -P gs://'+ tfbucket +'/radlab/'+ prefix +'/deployments/* ' + env_path) == 0):
             print("Terraform state downloaded to local...")
         else:
             print(Fore.RED + "\nError Occured whiled downloading Deployment Configs from GCS. Checking if the deployment exist locally...\n")
@@ -381,54 +397,74 @@ def getdomain(orgid):
     return response['displayName']
 
 def getbillingacc():
-    credentials = GoogleCredentials.get_application_default()
-    service = discovery.build('cloudbilling', 'v1', credentials=credentials)
-  
-    request = service.billingAccounts().list()
-    response = request.execute()
 
-    print("\nList of Billing account you have access to: \n")
-    billing_accounts = []    
-    # Print out Billing accounts
-    for x in range(len(response['billingAccounts'])):
-        print("[" + str(x+1) + "] " + response['billingAccounts'][x]['name'] + "    " + response['billingAccounts'][x]['displayName'])
-        billing_accounts.append(response['billingAccounts'][x]['name'])
+    x = input("\nHow would you like to fetch the Billing Account ?\n[1] Enter Manually\n[2] Select from the List\n" + Fore.YELLOW + Style.BRIGHT + "Choose a number for your choice"+ Style.RESET_ALL + ': ').strip()
 
-    # Take user input and get the corresponding item from the list
-    inp = int(input(Fore.YELLOW + Style.BRIGHT + "Choose a number for Billing Account" + Style.RESET_ALL + ': '))
-    if inp in range(1, len(billing_accounts)+1):
-        inp = billing_accounts[inp-1]
+    if(x == '1'):
+        billing_acc = input(Fore.YELLOW + Style.BRIGHT + "Enter the Billing Account ( Example format - ABCD-EFGH-IJKL-LMNO )" + Style.RESET_ALL + ': ').strip()
+        return billing_acc
+    
+    elif(x == '2'):
+        credentials = GoogleCredentials.get_application_default()
+        service = discovery.build('cloudbilling', 'v1', credentials=credentials)
+    
+        request = service.billingAccounts().list()
+        response = request.execute()
 
-        billing_acc = inp.split('/')        
-        # print(billing_acc[1])
-        return billing_acc[1]
+        print("\nList of Billing account you have access to: \n")
+        billing_accounts = []    
+        # Print out Billing accounts
+        for x in range(len(response['billingAccounts'])):
+            print("[" + str(x+1) + "] " + response['billingAccounts'][x]['name'] + "    " + response['billingAccounts'][x]['displayName'])
+            billing_accounts.append(response['billingAccounts'][x]['name'])
+
+        # Take user input and get the corresponding item from the list
+        inp = int(input(Fore.YELLOW + Style.BRIGHT + "Choose a number for Billing Account" + Style.RESET_ALL + ': '))
+        if inp in range(1, len(billing_accounts)+1):
+            inp = billing_accounts[inp-1]
+
+            billing_acc = inp.split('/')        
+            # print(billing_acc[1])
+            return billing_acc[1]
+        else:
+            sys.exit(Fore.RED + "\nError Occured - INVALID BILLING ACCOUNT\n")
     else:
-        sys.exit(Fore.RED + "\nError Occured - INVALID BILLING ACCOUNT\n")
+        sys.exit(Fore.RED + "\nError Occured - INVALID CHOICE\n"+ Style.RESET_ALL)
 
 def getorgid():
-    credentials = GoogleCredentials.get_application_default()
-    service = discovery.build('cloudresourcemanager', 'v1beta1', credentials=credentials)
 
-    request = service.organizations().list()
-    response = request.execute()
-
-    # pprint(response)
-
-    print("\nList of Org ID you have access to: \n")
-    org_ids = []    
-    # Print out Org IDs accounts
-    for x in range(len(response['organizations'])):
-        print("[" + str(x+1) + "] " + response['organizations'][x]['organizationId'] + "    " + response['organizations'][x]['displayName']+ "    " + response['organizations'][x]['lifecycleState'])
-        org_ids.append(response['organizations'][x]['organizationId'])
-
-    # Take user input and get the corresponding item from the list
-    inp = int(input(Fore.YELLOW + Style.BRIGHT + "Choose a number for Organization ID" + Style.RESET_ALL + ': '))
-    if inp in range(1, len(org_ids)+1):
-        orgid = org_ids[inp-1]   
-        # print(orgid)
+    x = input("\nHow would you like to fetch the Org ID ?\n[1] Enter Manually\n[2] Select from the List\n" + Fore.YELLOW + Style.BRIGHT + "Choose a number for your choice"+ Style.RESET_ALL + ': ').strip()
+    
+    if(x == '1'):
+        orgid = input(Fore.YELLOW + Style.BRIGHT + "Enter the Org ID ( Example format - 1234567890 )" + Style.RESET_ALL + ': ').strip()
         return orgid
+
+    elif(x == '2'):
+        credentials = GoogleCredentials.get_application_default()
+        service = discovery.build('cloudresourcemanager', 'v1beta1', credentials=credentials)
+
+        request = service.organizations().list()
+        response = request.execute()
+
+        # pprint(response)
+
+        print("\nList of Org ID you have access to: \n")
+        org_ids = []    
+        # Print out Org IDs accounts
+        for x in range(len(response['organizations'])):
+            print("[" + str(x+1) + "] " + response['organizations'][x]['organizationId'] + "    " + response['organizations'][x]['displayName']+ "    " + response['organizations'][x]['lifecycleState'])
+            org_ids.append(response['organizations'][x]['organizationId'])
+
+        # Take user input and get the corresponding item from the list
+        inp = int(input(Fore.YELLOW + Style.BRIGHT + "Choose a number for Organization ID" + Style.RESET_ALL + ': '))
+        if inp in range(1, len(org_ids)+1):
+            orgid = org_ids[inp-1]   
+            # print(orgid)
+            return orgid
+        else:
+            sys.exit(Fore.RED + "\nError Occured - INVALID ORG ID SELECTED\n"+ Style.RESET_ALL)
     else:
-        sys.exit(Fore.RED + "\nError Occured - INVALID ORG ID SELECTED\n"+ Style.RESET_ALL)
+        sys.exit(Fore.RED + "\nError Occured - INVALID CHOICE\n"+ Style.RESET_ALL)
 
 def delifexist(env_path):
     # print(os.path.isdir(env_path))

@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-
-
 variable "billing_account_id" {
   description = "Billing account ID that will be linked to the project."
   type        = string
 }
 
+variable "create_network" {
+  description = "Indicate if the deployment has to use a network that already exists."
+  type        = bool
+  default     = true
+}
 
 variable "create_project" {
   description = "Create a new project or use an existing project.  When set to true, variable project_name has to match the exact project ID of the existing project."

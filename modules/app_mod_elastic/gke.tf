@@ -29,8 +29,8 @@ module "gke_cluster" {
   project_id                 = local.project.project_id
   name                       = var.gke_cluster_name
   region                     = var.region
-  network                    = module.elastic_search_network.network_name
-  subnetwork                 = module.elastic_search_network.subnets_names.0
+  network                    = local.network.name
+  subnetwork                 = local.subnet.name
   remove_default_node_pool   = true
   initial_node_count         = 1
   ip_range_pods              = var.pod_ip_range_name
@@ -82,23 +82,8 @@ module "gke_cluster" {
   }
 
   depends_on = [
-    module.elastic_search_network,
     module.elastic_search_project,
     google_project_service.enabled_services
   ]
 
 }
-
-//module "gke_authentication" {
-//  source  = "terraform-google-modules/kubernetes-engine/google//modules/auth"
-//  version = "~> 17.0"
-//
-//  project_id           = local.project_id
-//  cluster_name         = module.gke_cluster.name
-//  location             = var.region
-//  use_private_endpoint = false
-//
-//  depends_on = [
-//    module.elastic_search_project
-//  ]
-//}

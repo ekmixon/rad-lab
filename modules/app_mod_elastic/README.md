@@ -10,8 +10,8 @@ This module allows the user to create an Elastic Search cluster, deployed on a G
 ## Prerequisites
 
 Ensure that the identity executing this module has the following IAM permissions, **when creating the project** (`create_project` = true): 
-- `roles/resourcemanager.projectCreator`
-- `roles/compute.admin`
+- Parent: `roles/resourcemanager.projectCreator`
+- Project: `roles/compute.admin`
 
 When deploying in an existing project, ensure the identity has the following permissions on the project:
 - `roles/compute.admin`
@@ -27,27 +27,78 @@ Also ensure that the identity creating the resources has access to a billing acc
 
 ## Reference Architechture Diagram
 
-Below Architechture Diagram is the base representation of what will be created as a part of [RAD Lab Installer](../../scripts/radlab.py).
+Below Architechture Diagram is the base representation of what will be created as a part of [RAD Lab Installer](../../radlab-installer/radlab.py).
+
+### Deploy Elastic Search
+The module deploys both the ECK CRDs and Operators.  As this module can be used to demo Elastic Search, it also deploys an ES and Kibana pod in the cluster.  This behaviour can be switched off by setting `deploy_elastic_search` to false.  This will only deploy the CRDs and Operators.
 
 ## Access Elastic Search 
 
+It's currently not possible to run `kubectl port-forward` and access it via the web preview **in Cloud Shell**.  The commands below have to be run from a local terminal instead.  If you use the RAD Lab installer from Cloud Shell, you will have to execute the following commands in a terminal on your local machine.  Make sure that you are logged in with the same user locally, as the one you used to run the installer.  You can do this by running `gcloud auth login`.
+
 ```shell
-# Retrieve credentials to query the Kubernetes API server
-$(terraform show -json | jq -r .values.outputs.cluster_credentials_cmd.value)
+# Retrieve credentials to query the Kubernetes API server.  Replace REGION and PROJECTID with the actual values.  You can copy/paste this command from the Terraform output.
+gcloud container clusters get-credentials elastic-search-cluster --region REGION --project PROJECTID
 
-# Check status Elastic Search. The health column should show status green. 
-kubectl get elasticsearch -n elastic-search
+# Check status Elastic Search. The health column should show status green.  Takes around 5 minutes to complete 
+kubectl get elasticsearch -n elastic-search-demo
 
-# Check status Kibana.  The health column should show status green.
-kubectl get kibana -n elastic-search
+# Check status Kibana.  The health column should show status green.  It can take a while for the pod to become available.
+kubectl get kibana -n elastic-search-demo
 
 # Retrieve password
-kubectl get secret elastic-search-es-elastic-user -n elastic-search -o go-template='{{.data.elastic | base64decode}}'
+kubectl get secret elastic-search-es-elastic-user -n elastic-search-demo -o go-template='{{.data.elastic | base64decode}}'
 
 # Start port-forwarding tunnel
-kubectl port-forward -n elastic-search service/kibana-kb-http 5601
+kubectl port-forward -n elastic-search-demo service/kibana-kb-http 5601
 
-# Open a browser window and point it to https://localhost:5601
+# Open a browser window and point it to https://localhost:5601. Login with username elastic and the password copied from the command above.
+```
+
+### Using Terraform module
+Here are a couple of examples to directly use the Terraform module, as opposed to using the RAD Lab installer.
+
+#### Simple
+
+```hcl
+module "elastic_search_simple" {
+  source = "./app_mod_elastic"
+
+  billing_account_id = "123456-123456-123456"
+  organization_id    = "12345678901"
+  folder_id          = "1234567890"
+}
+```
+
+#### Use existing project
+Replace `pref-project-id` with an existing project ID.
+```hcl
+module "elastic_search_project" {
+  source = "./app_mod_elastic"
+
+  billing_account_id = "123456-123456-123456"
+  organization_id    = "12345678901"
+  folder_id          = "1234567890"
+  create_project     = false
+  project_name       = "pref-project-id"
+}
+```
+
+#### Use existing network
+Both the project and the network has to exist already for this to work.  Additionally, if all the resources for egress traffic have already been created, set `enable_internet_egress_traffic` to **false**.  
+```hcl
+module "elastic_search_project" {
+  source = "./app_mod_elastic"
+
+  billing_account_id = "123456-123456-123456"
+  organization_id    = "12345678901"
+  folder_id          = "1234567890"
+  create_project     = false
+  project_name       = "pref-project-id"
+  create_network     = false
+  network_name       = "network-name"
+  subnet_name        = "subnet-name"
+}
 ```
 
 <!-- BEGIN TFDOC -->
