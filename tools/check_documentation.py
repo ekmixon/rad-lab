@@ -53,18 +53,16 @@ def check_path(pathname):
 
     variables = tfdoc.get_variables(subpath)
     variable_names = [v.name for v in variables]
-    for variable in variables:
-      if not variable.description:
-        errors.append(f'variable {variable.name} has no description')
+    errors.extend(f'variable {variable.name} has no description'
+                  for variable in variables if not variable.description)
     if sorted(variable_names) != variable_names:
       message = f'variable order should be: {sorted(variable_names)}'
       errors.append(message)
 
     outputs = tfdoc.get_outputs(subpath)
     output_names = [v.name for v in outputs]
-    for output in outputs:
-      if not output.description:
-        errors.append(f'output {output.name} has no description')
+    errors.extend(f'output {output.name} has no description'
+                  for output in outputs if not output.description)
     if sorted(output_names) != output_names:
       message = f'output order should be: {sorted(output_names)}'
       errors.append(message)
@@ -72,9 +70,7 @@ def check_path(pathname):
     state = tfdoc.check_state(subpath)
     if state is False:
       errors.append("documentation is out of date")
-    elif state:
-      pass
-    else:
+    elif not state:
       yield DocState.UNKNOWN, subpath.stem, errors
       continue
 

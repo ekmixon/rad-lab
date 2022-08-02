@@ -25,7 +25,7 @@ from bs4 import BeautifulSoup
 
 
 def main():
-    
+
     system = platform.system().lower()
     machine = platform.machine().lower()
 
@@ -33,34 +33,28 @@ def main():
     reqs = requests.get(url)
     soup = BeautifulSoup(reqs.text, 'html.parser')
 
-    if('darwin' in system or 'linux' in system):
-        if('x86_64' in machine):
-            machine = 'amd64'
-        else:
-            machine = '386'
-
+    if ('darwin' in system or 'linux' in system):
+        machine = 'amd64' if ('x86_64' in machine) else '386'
         for link in soup.find_all('a'):
             # print(link.get('href'))
-            if("https://releases.hashicorp.com/terraform/" in str(link.get('href')) and ".zip" in str(link.get('href')) and system in str(link.get('href'))):
-
-                if(machine in str(link.get('href'))):
-                    downloadlink = link.get('href')
-                    # print(downloadlink)
-                    break
-        os.system("curl "+downloadlink+ " --output terraform_download.zip")
+            if (
+                "https://releases.hashicorp.com/terraform/"
+                in str(link.get('href'))
+                and ".zip" in str(link.get('href'))
+                and system in str(link.get('href'))
+            ) and (machine in str(link.get('href'))):
+                downloadlink = link.get('href')
+                # print(downloadlink)
+                break
+        os.system(f"curl {downloadlink} --output terraform_download.zip")
         os.system("unzip terraform_download.zip")
         print("\nPlease enter your machine's credentials to complete installation (if requested)...\n")
-        os.system("sudo mv " +os.getcwd()+"/terraform /usr/local/bin/")
+        os.system(f"sudo mv {os.getcwd()}/terraform /usr/local/bin/")
         os.remove("terraform_download.zip")
 
-    elif('windows' in system):
-        # Run Command Prompt as adminstrator
-
-        # Create installChocolatey.cmd
-        f=open('installChocolatey.cmd', 'w+')
-        f.write('@echo off\n\nSET DIR=%~dp0%\n\n::download install.ps1\n%systemroot%\System32\WindowsPowerShell\\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "((new-object net.webclient).DownloadFile('"'https://community.chocolatey.org/install.ps1'"','"'%DIR%install.ps1'"'))"\n::run installer\n%systemroot%\System32\WindowsPowerShell\\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '"'%DIR%install.ps1'"' %*"')
-        f.close()
-
+    elif 'windows' in system:
+        with open('installChocolatey.cmd', 'w+') as f:
+            f.write('@echo off\n\nSET DIR=%~dp0%\n\n::download install.ps1\n%systemroot%\System32\WindowsPowerShell\\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "((new-object net.webclient).DownloadFile('"'https://community.chocolatey.org/install.ps1'"','"'%DIR%install.ps1'"'))"\n::run installer\n%systemroot%\System32\WindowsPowerShell\\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '"'%DIR%install.ps1'"' %*"')
         # Install Chocolatey & Terraform
         os.system('installChocolatey.cmd')
         os.system('choco install terraform -y')

@@ -51,7 +51,7 @@ def main(dir):
           warnings.append(fpath)
   if warnings:
     print('The following files cannot be accessed:')
-    print('\n'.join(' - {}'.format(s) for s in warnings))
+    print('\n'.join(f' - {s}' for s in warnings))
   if errors:
     # print('The following files are missing the license boilerplate:')
     # print('\n'.join(' - {}'.format(s) for s in errors))

@@ -117,7 +117,7 @@ class Variable(object):
 
   def _start(self, context, data):
     if context == self._data_context or getattr(self, context):
-      self._data.append("%s = %s" % (context, data))
+      self._data.append(f"{context} = {data}")
       return
     self._close()
     self._data = [data]
@@ -131,7 +131,7 @@ class Variable(object):
 
 def _escape(s):
   "Basic, minimal HTML escaping"
-  return ''.join(c if c in REPL_VALID else ('&#%s;' % ord(c)) for c in s)
+  return ''.join(c if c in REPL_VALID else f'&#{ord(c)};' for c in s)
 
 
 def format_outputs(outputs):
@@ -161,8 +161,7 @@ def format_type(type_spec):
     elif t in '})':
       stack.pop()
     buffer.append(t)
-  for t in reversed(stack):
-    buffer.append(')' if t == '(' else '}')
+  buffer.extend(')' if t == '(' else '}' for t in reversed(stack))
   return ''.join(buffer).replace('object({})', 'object({...})')
 
 
@@ -189,21 +188,21 @@ def format_variables(variables, required_first=True):
     if v.type and '(' in v.type:
       type_spec = _escape(v.type)
     yield row.format(
-        name=v.name if v.required else '*%s*' % v.name,
-        description=v.description, required='✓' if v.required else '',
-        type=format_type(v.type), type_spec=type_spec,
-        default=default
+        name=v.name if v.required else f'*{v.name}*',
+        description=v.description,
+        required='✓' if v.required else '',
+        type=format_type(v.type),
+        type_spec=type_spec,
+        default=default,
     )
 
 
 def get_doc(variables, outputs):
   "Return formatted documentation."
   buffer = ['## Variables\n']
-  for line in format_variables(variables):
-    buffer.append(line)
+  buffer.extend(iter(format_variables(variables)))
   buffer.append('\n## Outputs\n')
-  for line in format_outputs(outputs):
-    buffer.append(line)
+  buffer.extend(iter(format_outputs(outputs)))
   return '\n'.join(buffer)
 
 
@@ -225,7 +224,7 @@ def replace_doc(module, doc):
   "Replace document in module's README.md file."
   try:
     readme = open(os.path.join(module, 'README.md')).read()
-    m = re.search('(?sm)%s.*%s' % (MARK_BEGIN, MARK_END), readme)
+    m = re.search(f'(?sm){MARK_BEGIN}.*{MARK_END}', readme)
     if not m:
       raise SystemExit('Pattern not found in README file.')
     replacement = "{pre}{begin}\n{doc}\n{end}{post}".format(
@@ -233,7 +232,7 @@ def replace_doc(module, doc):
         end=MARK_END, post=readme[m.end():])
     open(os.path.join(module, 'README.md'), 'w').write(replacement)
   except (IOError, OSError) as e:
-    raise SystemExit('Error replacing in README: %s' % e)
+    raise SystemExit(f'Error replacing in README: {e}')
 
 
 def get_variables(path):
@@ -241,8 +240,9 @@ def get_variables(path):
   variables = []
   for path in glob.glob(os.path.join(path, 'variables*tf')):
     with open(path) as file:
-      variables += [v for v in parse_items(
-          file.read(), RE_VARIABLES, VariableToken, Variable, VariableData)]
+      variables += list(
+          parse_items(file.read(), RE_VARIABLES, VariableToken, Variable,
+                      VariableData))
   return variables
 
 
@@ -251,8 +251,9 @@ def get_outputs(path):
   outputs = []
   for path in glob.glob(os.path.join(path, 'outputs*tf')):
     with open(path) as file:
-      outputs += [o for o in parse_items(
-          file.read(), RE_OUTPUTS, OutputToken, Output, OutputData)]
+      outputs += list(
+          parse_items(file.read(), RE_OUTPUTS, OutputToken, Output,
+                      OutputData))
   return outputs
 
 
@@ -265,10 +266,10 @@ def check_state(path):
     readme = open(os.path.join(path, 'README.md')).read()
   except (IOError, OSError):
     return
-  m = re.search('(?sm)%s.*%s' % (MARK_BEGIN, MARK_END), readme)
-  if not m:
+  if m := re.search(f'(?sm){MARK_BEGIN}.*{MARK_END}', readme):
+    return get_doc(variables, outputs) in readme
+  else:
     return
-  return get_doc(variables, outputs) in readme
 
 
 @click.command()

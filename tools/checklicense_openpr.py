@@ -34,20 +34,19 @@ def main(PR):
 
         # Looping through all Open PRs
         for pr in response.json():
-            
+
             commentcheck = prcommentcheck(GITHUB_REPOSITORY, pr['number'])
             licensecheck(GITHUB_REPOSITORY, TOKEN, pr['number'],commentcheck)        
 
     else: 
-        print('Manual License check for: ' + PR)
+        print(f'Manual License check for: {PR}')
         licensecheck(GITHUB_REPOSITORY, TOKEN, int(PR),'false') 
 
 
 def open_pr(GITHUB_REPOSITORY):
     print('Fetching open PRs...')
     try:
-        response = requests.get('https://api.github.com/repos/'+ GITHUB_REPOSITORY +'/pulls')
-        return response
+        return requests.get(f'https://api.github.com/repos/{GITHUB_REPOSITORY}/pulls')
     except requests.exceptions.RequestException as e: 
         raise SystemExit(e)
 
@@ -55,11 +54,11 @@ def open_pr(GITHUB_REPOSITORY):
 def licensecheck(GITHUB_REPOSITORY, TOKEN, pr, commentcheck):   
 
     # If commentcheck = 'false' i.e. License check has not run on the PR before.
-    if(commentcheck == 'false'):
+    if (commentcheck == 'false'):
     # if(checkmindiff(pr['created_at']) and commentcheck == 'false'):
 
-        print('PR # ' + str(pr) + ' : Run Licence check...')
-        
+        print(f'PR # {str(pr)} : Run Licence check...')
+
         # Get all pr files
         prfiles = pr_files(GITHUB_REPOSITORY,pr)
 
@@ -72,10 +71,10 @@ def licensecheck(GITHUB_REPOSITORY, TOKEN, pr, commentcheck):
         # print(glob.glob(os.getcwd()+'/temp/*/*/*'))
 
         # Run lisence check on the downloaded files in temp directory
-        pr_no_license_files = boilerplate(os.getcwd()+'/temp')
+        pr_no_license_files = boilerplate(f'{os.getcwd()}/temp')
 
         # Delete temp directory and its contents
-        shutil.rmtree(os.getcwd()+'/temp')
+        shutil.rmtree(f'{os.getcwd()}/temp')
 
         if pr_no_license_files:
             comment = '<!-- Boilerplate Check -->\nApache 2.0 License check failed!\n\nThe following files are missing the license boilerplate:\n'
@@ -89,14 +88,17 @@ def licensecheck(GITHUB_REPOSITORY, TOKEN, pr, commentcheck):
         commentpr(GITHUB_REPOSITORY, pr, comment, TOKEN)
 
     else:
-        print('PR # ' + str(pr) + ' : Skip Licence check...')
+        print(f'PR # {str(pr)} : Skip Licence check...')
 
 
 def prcommentcheck(GITHUB_REPOSITORY, pr):
     print('Checking if the License check has already ran...')
     try:
         status = 'false'
-        response = requests.get('https://api.github.com/repos/'+ GITHUB_REPOSITORY +'/issues/'+ str(pr) +'/comments')
+        response = requests.get(
+            f'https://api.github.com/repos/{GITHUB_REPOSITORY}/issues/{str(pr)}/comments'
+        )
+
         for comment in response.json():
             body = comment['body']
             if(body.startswith('<!-- Boilerplate Check -->')):
@@ -112,9 +114,12 @@ def boilerplate(local_temp):
     pr_no_license_files = []
     allfiles = check_boilerplate.main(local_temp)
     try:
-        for x in range(len(allfiles)):
-            pr_no_license_files.append(allfiles[x].replace(local_temp+'/', ""))
-        # print(pr_no_license_files)
+        pr_no_license_files.extend(
+            allfiles[x].replace(f'{local_temp}/', "")
+            for x in range(len(allfiles))
+        )
+
+            # print(pr_no_license_files)
     except:
         print("All files have the Apache 2.0 Lisence")
     return pr_no_license_files
@@ -122,12 +127,14 @@ def boilerplate(local_temp):
 def pr_files(GITHUB_REPOSITORY,pr):
     pr_files = []
     try:
-        response = requests.get('https://api.github.com/repos/'+ GITHUB_REPOSITORY +'/pulls/'+ str(pr) +'/files')
-        for file in response.json():
-            if(file['status'] != 'removed'):
-                pr_files.append(file)
-            else:
-                continue
+        response = requests.get(
+            f'https://api.github.com/repos/{GITHUB_REPOSITORY}/pulls/{str(pr)}/files'
+        )
+
+        pr_files.extend(
+            file for file in response.json() if (file['status'] != 'removed')
+        )
+
         # print(pr_files)
         return pr_files
 
@@ -138,7 +145,7 @@ def downloadprfiles(prfiles):
     for file in prfiles:
         # print('Create Temp Directory')
         path = os.path.dirname(file['filename'])
-        path = os.getcwd() + '/temp/' + path
+        path = f'{os.getcwd()}/temp/{path}'
         # print(path)
 
         if not os.path.exists(path):
@@ -147,7 +154,7 @@ def downloadprfiles(prfiles):
         # print('Beginning file download with requests')
         r = requests.get(file['raw_url'])
 
-        with open(path + '/' + os.path.basename(file['filename']), 'wb') as f:
+        with open(f'{path}/' + os.path.basename(file['filename']), 'wb') as f:
             f.write(r.content)
 
         # # Retrieve HTTP meta-data
@@ -161,8 +168,13 @@ def commentpr(GITHUB_REPOSITORY, pr, comment, TOKEN):
     # print(comment)
     data = {"body":comment}
     try:
-        response  = requests.post('https://api.github.com/repos/'+ GITHUB_REPOSITORY +'/issues/'+ str(pr) +'/comments', data=json.dumps(data), headers=headers)
-        # print(response.text)
+        response = requests.post(
+            f'https://api.github.com/repos/{GITHUB_REPOSITORY}/issues/{str(pr)}/comments',
+            data=json.dumps(data),
+            headers=headers,
+        )
+
+            # print(response.text)
     except requests.exceptions.RequestException as e: 
         raise SystemExit(e)
 
